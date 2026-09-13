@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:15-alpine  # Используем официальный и легковесный образ Postgres
+    container_name: support-db-container
+    restart: always
+    volumes:
+      # Эта строчка "пробрасывает" данные из контейнера на наш сервер (в папку postgres_data).
+      # Если контейнер удалится, данные не пропадут.
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # Эти переменные должны ТОЧНО СОВПАДАТЬ с теми, что в твоем .env файле!
+      # Docker использует их, чтобы создать базу данных и пользователя при первом запуске.
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+      
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: support-pgadmin-container
+    restart: always
+    env_file:
+      - .env # Используем тот же .env для логина/пароля
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+
+  bot:
+    build: .  # Собирать образ из Dockerfile в текущей папке
+    container_name: admins-support-bot-container
+    restart: always
+    env_file:
+      - .env   # Передаем все переменные из .env файла в контейнер
+    depends_on:
+      - db     # ВАЖНО: Эта строчка говорит Docker сначала запустить базу данных, и только потом - бота.
+    
+# Описываем том, который мы используем для базы данных
+volumes:
+  postgres_data:
